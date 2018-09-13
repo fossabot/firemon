@@ -1,0 +1,100 @@
+html {
+    font-family: 'DejaVu Sans', sans-serif;
+    background-color: white;
+    zoom: 186%;
+}
+
+.content {
+    margin: auto auto;
+}
+
+h1 {
+    color: red;
+    background-color: rgb(162, 255, 182);
+}
+
+body {
+    font-size: 150%;
+    text-align: center;
+    border:5px solid rgb(85, 215, 255);
+}
+
+table {
+    width: 100%;
+}
+
+.important {
+    font-size: 125%;
+}
+
+tr:nth-child(even) {
+    background: #eee;
+}
+
+.previous {
+    color: #666;
+    padding-left: 10px;
+    font-size: 60%;
+}
+
+.deltaUp {
+    color: green;
+    padding-right: 5px;
+}
+
+.deltaDown {
+    color: red;
+    padding-right: 5px;
+}
+
+.warn {
+    background-color: black;
+    color: white;
+    padding: 5px;
+    width: 98%;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 67.5%;
+    margin-top: 30px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.upd, .fireid {
+    font-size: 70%;
+    color: black;
+}
+
+.cite {
+    font-family: 'Roboto', sans-serif;
+    font-size: 60%;
+    width: 98%;
+    margin: 20px auto;
+}
+
+td {
+    text-align: left;
+}
+th {
+    text-align: right;
+}
+td, th {
+    padding: 5px;
+}
+
+.details {
+    font-size: 70%;
+    text-align: center;
+}
+
+.detailsRow {
+    margin-top: 20px;
+}
+
+.detail {
+    white-space: nowrap;
+}
+
+.detail + .detail:before {
+    content: " — ";
+}

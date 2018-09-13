@@ -1,0 +1,4 @@
+- var numFormat = new Intl.NumberFormat('en-US', {maximumFractionDigits: 2});
+- var currencyFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
+| #{data.current.Hashtag} unofficial wildfire update • #{numFormat.format(data.current.DailyAcres)} Acres • #{numFormat.format(data.current.PercentContained)}% Contained* • #{numFormat.format(data.current.TotalIncidentPersonnel)} Personnel • #{currencyFormat.format(data.current.EstimatedCostToDate)} Est. Cost
+| May be incorrect/outdated; consult officials for safety info.
