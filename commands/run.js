@@ -111,83 +111,20 @@ exports.handler = argv => {
   };
 
 
-  const htmlTemplate = pug.compileFile('fireUpdate.pug');
+  const htmlTemplate = pug.compileFile('fireUpdateRender.pug');
   const genHtml = function (entry) {
     return htmlTemplate({ config: config, data: entry, curdir: process.cwd() });
   };
 
-  const tweetTemplate = pug.compileFile('tweet.pug');
+  const tweetTemplate = pug.compileFile('fireUpdateTweet.pug');
 
   const genTweet = function (entry) {
     return tweetTemplate({ config: config, data: entry, curdir: process.cwd() });
   };
 
   if (argv.twitter) {
-    // Posts messages to Twitter.
-    const twitterDaemon = function(path) {
-      const twit = require('twit');
-
-      const twitterAccount = new twit({
-        consumer_key:         envconfig.twitterAuth.consumer_key,
-        consumer_secret:      envconfig.twitterAuth.consumer_secret,
-        access_token:         envconfig.twitterAuth.access_token,
-        access_token_secret:  envconfig.twitterAuth.access_token_secret,
-        timeout_ms:           60*1000,
-        strictSSL:            true,
-      });
-
-      const postLoop = function() {
-        fs.readdir(path, function(err, items) {
-            if (items.length > 0) {
-              console.log('@@ Found %d Twitter posts in queue', items.length);
-              const p = path + items[0];
-              const y = fs.readFileSync(p);
-              const item = yaml.safeLoad(y);
-              if (item.imageBase64) {
-                twitterAccount.post('media/upload', {media_data: item.imageBase64}, function(err, data, resp) {
-                  if (err) {
-                    console.log(' !!! Could not upload image from ' + p);
-                    console.log(err);
-                    setTimeout(postLoop, 5300);
-                  } else {
-                    const mediaId = data.media_id_string;
-                    // For accessibility.
-                    const altText = item.imageAltText;
-                    const metadata = { media_id: mediaId, alt_text: { text: altText } };
-
-                    twitterAccount.post('media/metadata/create', metadata, function (err, data, resp) {
-                      if (err) {
-                        console.log(' !!! Could not update image metadata from ' + p);
-                        console.log(err);
-                        setTimeout(postLoop, 5300);
-                      } else {
-                        const newPost = { status: item.text, media_ids: [mediaId] };
-                        twitterAccount.post('statuses/update', newPost, function (err, data, resp) {
-                          if (err) {
-                            console.log(' !!! Could not post tweet from ' + p);
-                            console.log(err);
-                            setTimeout(postLoop, 5300);
-                          } else {
-                            console.log(' @@ Posted new tweet - https://twitter.com/' + config.twitterName + '/status/' + data.id_str);
-                            fs.unlinkSync(p);
-                            setTimeout(postLoop, 67500);
-                          }
-                        })
-                      }
-                    })
-                  }
-                });
-              }
-            } else {
-              setTimeout(postLoop, 5300);
-            }
-        });
-      };
-      setTimeout(postLoop, 1000);
-    };
-
-    setTimeout(() => twitterDaemon(argv.outputdir + '/postqueue/'), 1000);
-
+    const t = require('../lib/twitter');
+    t.launchDaemon(argv.outputdir + '/postqueue/');
   }
 
   const REMOVE_forceDeltaDebug = argv.debug;
