@@ -61,7 +61,7 @@ exports.handler = argv => {
   const maprender = require('../lib/maprender');
   const geomac = require('../lib/geomac');
 
-  const webshotSemaphore = require('semaphore')(1);
+  const intensiveProcessingSemaphore = require('semaphore')(1);
 
   const webApp = express();
 
@@ -73,7 +73,7 @@ exports.handler = argv => {
     rimraf.sync(tmpdir, {disableGlob: true});
     rimraf.sync(argv.outputdir, {disableGlob: true});
   }
-  
+
   mkdirp.sync(tmpdir + '/img/src/terrain');
   mkdirp.sync(tmpdir + '/img/src/detail');
   mkdirp.sync(argv.outputdir + '/img');
@@ -149,7 +149,7 @@ exports.handler = argv => {
 
   if (argv.twitter) {
     const t = require('../lib/twitter');
-    t.launchDaemon(argv.outputdir + '/postqueue/');
+    t.launchDaemon(argv.outputdir + '/postqueue/', intensiveProcessingSemaphore);
   }
 
   const REMOVE_forceDeltaDebug = argv.debug;
@@ -193,7 +193,7 @@ exports.handler = argv => {
 
         outstanding++;
 
-        webshotSemaphore.take(() => {
+        intensiveProcessingSemaphore.take(() => {
           geomac.getPerimeters((perims, err) => {
 
             //console.log(perims);
@@ -253,12 +253,12 @@ exports.handler = argv => {
                 fs.writeFileSync(argv.outputdir + '/data/DIFF-' + updateId + '.yaml', diffs);
 
 
-                console.log('   # Before webshotSemaphore ' + updateId);
+                console.log('   # Before intensiveProcessingSemaphore ' + updateId);
                 outstanding++;
 
-                webshotSemaphore.take(function () {
+                intensiveProcessingSemaphore.take(function () {
                   try {
-                    console.log('   # Entering webshotSemaphore ' + updateId);
+                    console.log('   # Entering intensiveProcessingSemaphore ' + updateId);
                     const infoImg = argv.outputdir + '/img/IMG-TWEET-' + updateId + '.png';
                     const perimImg = argv.outputdir + '/img/IMG-PERIM-' + updateId + '.png';
                     const terrainMapImg = tmpdir + '/img/src/terrain/MAP-TERRAIN-' + updateId + '.png';
@@ -313,8 +313,8 @@ exports.handler = argv => {
 
                             outstanding--;
 
-                            console.log('   # Exiting webshotSemaphore ' + updateId);
-                            webshotSemaphore.leave();
+                            console.log('   # Exiting intensiveProcessingSemaphore ' + updateId);
+                            intensiveProcessingSemaphore.leave();
                           }
 
                           const detailImg64 = detailPath ? fs.readFileSync(detailPath, {encoding: 'base64'}) : null;
@@ -374,7 +374,7 @@ exports.handler = argv => {
             }
 
             outstanding--;
-            webshotSemaphore.leave();
+            intensiveProcessingSemaphore.leave();
           });
         });
       } catch (err) {
@@ -383,15 +383,15 @@ exports.handler = argv => {
         // Just wait!
         console.log(' >> Repeat semaphore wait');
         const whenReady = function (again) {
-          webshotSemaphore.take(function () {
+          intensiveProcessingSemaphore.take(function () {
             console.log(' >> Repeat semaphore acquired');
             if (outstanding < 0) {
-              webshotSemaphore.leave();
+              intensiveProcessingSemaphore.leave();
               throw "Can't have negative outstanding requests";
             }
             if (outstanding == 0) {
               console.log(' >> Repeat semaphore - ready to refresh');
-              webshotSemaphore.leave();
+              intensiveProcessingSemaphore.leave();
               fs.writeFileSync(argv.db, yaml.safeDump(x));
               if (argv.once) {
                 process.exit();
@@ -401,7 +401,7 @@ exports.handler = argv => {
               return;
             }
             console.log(' >> Repeat semaphore - NOT ready to refresh: ' + outstanding);
-            webshotSemaphore.leave();
+            intensiveProcessingSemaphore.leave();
             setTimeout(function () { again(again); }, 1000);
           });
         };
