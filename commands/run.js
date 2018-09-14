@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+'use strict';
 
 exports.command = 'run';
 
@@ -28,6 +29,10 @@ exports.builder = {
   twitter: {
     boolean: true,
     desc: 'Whether to post to Twitter'
+  },
+  clean: {
+    boolean: true,
+    desc: 'Whether to clear the data files and Twitter post queue before starting'
   },
   locations: {
     boolean: true,
@@ -49,6 +54,7 @@ exports.handler = argv => {
   const express = require('express');
   const serveIndex = require('serve-index');
   const numeral = require('numeral');
+  const rimraf = require('rimraf');
 
   const envconfig = require('../envconfig');
   const dateString = require('../lib/util').dateString;
@@ -63,12 +69,18 @@ exports.handler = argv => {
 
   const tmpdir = os.tmpdir() + '/firemon/';
 
+  if (argv.clean) {
+    rimraf.sync(tmpdir, {disableGlob: true});
+    rimraf.sync(argv.outputdir, {disableGlob: true});
+  }
+  
   mkdirp.sync(tmpdir + '/img/src/terrain');
   mkdirp.sync(tmpdir + '/img/src/detail');
   mkdirp.sync(argv.outputdir + '/img');
   mkdirp.sync(argv.outputdir + '/tweets');
   mkdirp.sync(argv.outputdir + '/postqueue');
   mkdirp.sync(argv.outputdir + '/data');
+
 
   webApp.use('/updates', express.static(argv.outputdir + '/'), serveIndex(argv.outputdir + '/', { icons: true, view: 'details' }));
   webApp.listen(argv.port);
@@ -156,8 +168,6 @@ exports.handler = argv => {
         x = _.keyBy(data.map(e => processFire(e.attributes)), o => o.UniqueFireIdentifier);
         // console.log('%s', yaml.safeDump(x));
 
-        const globalUpdateId = 'Update-at-' + dateString(new Date().getTime());
-
         if (REMOVE_forceDeltaDebug && !first) {
           const bs = ['2018-CASHF-001444','2018-WAOWF-000443','2018-CASHF-001438'];
           for (let bsi in bs) {
@@ -173,19 +183,13 @@ exports.handler = argv => {
           }
         }
 
-        //fs.writeFileSync('./testimgs/GLOBAL-LHS-' + globalUpdateId + '.yaml', yaml.safeDump(last));
-        //fs.writeFileSync('./testimgs/GLOBAL-RHS-' + globalUpdateId + '.yaml', yaml.safeDump(x));
-
-        console.log('Writing ' + globalUpdateId);
-
-        const diffGlobal = deepDiff(last, x) || [];
-
-        const diffsGlobal = yaml.safeDump(diffGlobal);
-
-        fs.writeFileSync(argv.outputdir + '/data/GLOBAL-DIFF-' + globalUpdateId + '.yaml', diffsGlobal);
-
-        // max fires to process.
-        //let c = 2000;
+        const globalUpdateId = 'Update-at-' + dateString(new Date().getTime());
+        {
+          console.log('Writing ' + globalUpdateId);
+          const diffGlobal = deepDiff(last, x) || [];
+          const diffsGlobal = yaml.safeDump(diffGlobal);
+          fs.writeFileSync(argv.outputdir + '/data/GLOBAL-DIFF-' + globalUpdateId + '.yaml', diffsGlobal);
+        }
 
         outstanding++;
 
@@ -239,7 +243,7 @@ exports.handler = argv => {
                   .map(fire => fire.geometry.rings)
                   .reduce((a,b) => a.concat(b), []);
                 perim = perim.concat(children);
-        
+                perim = perim.map(geomac.cleanGeometryRing);        
 
                 const diffs = yaml.safeDump(oneDiff || []);
                 const isNew = !(i in last);
@@ -260,7 +264,7 @@ exports.handler = argv => {
                     const terrainMapImg = tmpdir + '/img/src/terrain/MAP-TERRAIN-' + updateId + '.png';
                     const detailMapImg = tmpdir + '/img/src/detail/MAP-DETAIL-' + updateId + '.png';
 
-                    const doWebshot = (terrainPath, detailPath) => {
+                    const doWebshot = (center, zoom, terrainPath, detailPath) => {
                       const terrainImg64 = terrainPath ? fs.readFileSync(terrainPath, {encoding: 'base64'}) : null;
                       const templateData = { 
                         current: cur, 
@@ -272,8 +276,6 @@ exports.handler = argv => {
                         detailPath: detailPath,
                       };
                       const html = genHtml(templateData);
-
-
                       const tweet = genTweet(templateData);
                       fs.writeFileSync(argv.outputdir + '/tweets/TWEET-' + updateId + '.txt', tweet);
                       webshot(html, infoImg,
@@ -287,7 +289,6 @@ exports.handler = argv => {
                             console.log(err);
                           }
 
-
                           const saveTweet = function(detailRender) {
                             
                             // Tweet out in acre order if congested.
@@ -295,13 +296,16 @@ exports.handler = argv => {
 
                             const img64 = fs.readFileSync(infoImg, {encoding: 'base64'});
 
-                            const saved = {
+                            let saved = {
                               text: tweet,
                               image1AltText: tweet,
                               image1: infoImg,
                               image2AltText: 'Perimeter map',
                               image2: detailRender,
                             };
+                            if (center) {
+                              saved.coords = { lat: center[1], long: center[0] };
+                            }
 
                             // Tell the twitter daemon we are ready to post.
                             const savedYaml = yaml.safeDump(saved);
@@ -345,14 +349,14 @@ exports.handler = argv => {
                     };
 
                     if (perim.length > 0 && argv.locations) {
-                      maprender.renderMap(terrainMapImg, perim, 800, 800, 6, false, (terrainErr) => {
-                        maprender.renderMap(detailMapImg, perim, 2338/2, 1100/2, 13, true, (detailErr) => {
-                          doWebshot(terrainErr ? null : terrainMapImg, detailErr ? null : detailMapImg);
+                      maprender.renderMap(terrainMapImg, perim, 800, 800, 6, false, (center, zoom, terrainErr) => {
+                        maprender.renderMap(detailMapImg, perim, 2338/2, 1100/2, 13, true, (_center, _zoom, detailErr) => {
+                          doWebshot(center, zoom, terrainErr ? null : terrainMapImg, detailErr ? null : detailMapImg);
                         });
                       });
                     } else {
                       console.log('>> Missing perimeter - ' + updateId);
-                      doWebshot(null, null);
+                      doWebshot(null, null, null, null);
                     }
                   } catch (err) {
                     console.log(err);
