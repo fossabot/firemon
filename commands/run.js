@@ -61,7 +61,20 @@ exports.handler = argv => {
   const maprender = require('../lib/maprender');
   const geomac = require('../lib/geomac');
 
-  const intensiveProcessingSemaphore = require('semaphore')(1);
+  const FairSemaphore = require('fair-semaphore');
+  const processingSemaphore = new FairSemaphore(1);
+
+  const namedSemaphore = function(impl, name) {
+    return {
+      take: function(cb) {
+        impl.take(name, cb);
+      },
+      leave: function() {
+        impl.leave();
+      }
+    };
+  };
+  const intensiveProcessingSemaphore = namedSemaphore(processingSemaphore, 'computation');
 
   const webApp = express();
 
@@ -149,7 +162,7 @@ exports.handler = argv => {
 
   if (argv.twitter) {
     const t = require('../lib/twitter');
-    t.launchDaemon(argv.outputdir + '/postqueue/', intensiveProcessingSemaphore);
+    t.launchDaemon(argv.outputdir + '/postqueue/', namedSemaphore(processingSemaphore, 'twitter'));
   }
 
   const REMOVE_forceDeltaDebug = argv.debug;
@@ -265,14 +278,14 @@ exports.handler = argv => {
                     const detailMapImg = tmpdir + '/img/src/detail/MAP-DETAIL-' + updateId + '.png';
 
                     const doWebshot = (center, zoom, terrainPath, detailPath) => {
-                      const terrainImg64 = terrainPath ? fs.readFileSync(terrainPath, {encoding: 'base64'}) : null;
+                      const terrainImg = terrainPath || null;
                       const templateData = { 
                         current: cur, 
                         last: old, 
                         diff: oneDiff, 
                         isNew: isNew, 
-                        terrainImg64: terrainImg64, 
-                        terrainCredit: terrainImg64 ? maprender.terrainCredit : '',
+                        terrainImg: terrainImg, 
+                        terrainCredit: terrainImg ? maprender.terrainCredit : '',
                         detailPath: detailPath,
                       };
                       const html = genHtml(templateData);
@@ -293,9 +306,6 @@ exports.handler = argv => {
                             
                             // Tweet out in acre order if congested.
                             const priority = numeral(Math.round(100000000000 - cur.DailyAcres)).format('0000000000000');
-
-                            const img64 = fs.readFileSync(infoImg, {encoding: 'base64'});
-
                             let saved = {
                               text: tweet,
                               image1AltText: tweet,
@@ -317,16 +327,16 @@ exports.handler = argv => {
                             intensiveProcessingSemaphore.leave();
                           }
 
-                          const detailImg64 = detailPath ? fs.readFileSync(detailPath, {encoding: 'base64'}) : null;
-                          if (detailImg64) {
+                          const detailImg = detailPath || null;
+                          if (detailImg) {
                             const perimTemplateData = {
                               perimDateTime: perimDateTime,
                               current: cur, 
                               last: old, 
                               diff: oneDiff, 
                               isNew: isNew, 
-                              img64: detailImg64, 
-                              imgCredit: detailImg64 ? maprender.detailedCredit : '',
+                              img: detailImg, 
+                              imgCredit: detailImg ? maprender.detailedCredit : '',
                             };
                             const htmlPerim = perimeterHtml(perimTemplateData);
                             webshot(htmlPerim, perimImg,
