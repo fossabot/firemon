@@ -28,6 +28,10 @@ exports.builder = {
   twitter: {
     boolean: true,
     desc: 'Whether to post to Twitter'
+  },
+  locations: {
+    boolean: true,
+    desc: 'Whether to post images of fire locations'
   }
 }
 
@@ -340,7 +344,7 @@ exports.handler = argv => {
                         });
                     };
 
-                    if (perim.length > 0) {
+                    if (perim.length > 0 && argv.locations) {
                       maprender.renderMap(terrainMapImg, perim, 800, 800, 6, false, (terrainErr) => {
                         maprender.renderMap(detailMapImg, perim, 2338/2, 1100/2, 13, true, (detailErr) => {
                           doWebshot(terrainErr ? null : terrainMapImg, detailErr ? null : detailMapImg);
