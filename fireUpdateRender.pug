@@ -1,6 +1,6 @@
 - var numFormat = new Intl.NumberFormat('en-US', {maximumFractionDigits: 2});
 - var currencyFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 });
-
+- var hasImg = data.terrainImg64 ? true : false;
 doctype html
 html
     head
@@ -13,68 +13,75 @@ html
                     h1
                         span #{data.current.Fire_Name} Fire
 
-            table
-                tr.important
-                    th(width='50%')
-                        span.current #{numFormat.format(data.current.PercentContained)}%
-                    td(width='50%')
-                        | Contained*
-                        if !data.isNew && 'PercentContained' in data.diff
-                            span.previous
-                                if data.current.PercentContained > data.last.PercentContained
-                                    span.deltaUp ▲
-                                else
-                                    span.deltaDown ▼
-                                | from #{numFormat.format(data.last.PercentContained)}%
-                tr.important
-                    th
-                        span.current #{numFormat.format(data.current.DailyAcres)}
-                    td
-                        | Acres
-                        if !data.isNew && 'DailyAcres' in data.diff
-                            span.previous
-                                if data.current.DailyAcres > data.last.DailyAcres
-                                    span.deltaUp ▲
-                                else
-                                    span.deltaDown ▼
-                                | from #{numFormat.format(data.last.DailyAcres)}
-                tr.important
-                    th 
-                        span.current #{numFormat.format(data.current.TotalIncidentPersonnel)}
-                    td
-                        | Personnel
-                        if !data.isNew && 'TotalIncidentPersonnel' in data.diff
-                            span.previous
-                                if data.current.TotalIncidentPersonnel > data.last.TotalIncidentPersonnel
-                                    span.deltaUp ▲
-                                else
-                                    span.deltaDown ▼
-                                | from #{numFormat.format(data.last.TotalIncidentPersonnel)}
-                tr.important
-                    th 
-                        span.current #{currencyFormat.format(data.current.EstimatedCostToDate)}
-                    td
-                        | Est. Cost to Date
-                        if !data.isNew && 'EstimatedCostToDate' in data.diff
-                            span.previous
-                                if data.current.EstimatedCostToDate > data.last.EstimatedCostToDate
-                                    span.deltaUp ▲
-                                else
-                                    span.deltaDown ▼
-                                | from #{currencyFormat.format(data.last.EstimatedCostToDate)}
-
+            table.wrapper
                 tr
-                    td.details(colspan=2)
-                        div.detailsRow
-                            span.detail #{data.current.Hashtag}
-                            span.detail Fire Id #{data.current.UniqueFireIdentifier}
-                            br
-                            span.detail #{data.current.FireCause} Cause 
-                            span.detail Discovered #{data.current.FireDiscoveryDateTime}
-                            br
-                            span.detail Updated #{data.current.ModifiedOnDateTime}
-                            if !data.isNew 
-                                span.detail Prior Update #{data.last.ModifiedOnDateTime}
+                    if hasImg
+                        td(width='30%')
+                            img.smallMap(src='data:image/png;base64, ' + data.terrainImg64)
+                    td(width=hasImg?'70%':'100%')
+                        table.data
+                            tr.important
+                                th(width='50%')
+                                    span.current #{numFormat.format(data.current.PercentContained)}%
+                                td(width='50%')
+                                    | Contained*
+                                    if !data.isNew && 'PercentContained' in data.diff
+                                        span.previous
+                                            if data.current.PercentContained > data.last.PercentContained
+                                                span.deltaUp ▲
+                                            else
+                                                span.deltaDown ▼
+                                            | from #{numFormat.format(data.last.PercentContained)}%
+                            tr.important
+                                th
+                                    span.current #{numFormat.format(data.current.DailyAcres)}
+                                td
+                                    | Acres
+                                    if !data.isNew && 'DailyAcres' in data.diff
+                                        span.previous
+                                            if data.current.DailyAcres > data.last.DailyAcres
+                                                span.deltaUp ▲
+                                            else
+                                                span.deltaDown ▼
+                                            | from #{numFormat.format(data.last.DailyAcres)}
+                            tr.important
+                                th 
+                                    span.current #{numFormat.format(data.current.TotalIncidentPersonnel)}
+                                td
+                                    | Personnel
+                                    if !data.isNew && 'TotalIncidentPersonnel' in data.diff
+                                        span.previous
+                                            if data.current.TotalIncidentPersonnel > data.last.TotalIncidentPersonnel
+                                                span.deltaUp ▲
+                                            else
+                                                span.deltaDown ▼
+                                            | from #{numFormat.format(data.last.TotalIncidentPersonnel)}
+                            tr.important
+                                th 
+                                    span.current #{currencyFormat.format(data.current.EstimatedCostToDate)}
+                                td
+                                    | Est. Cost
+                                    if !data.isNew && 'EstimatedCostToDate' in data.diff
+                                        span.previous
+                                            if data.current.EstimatedCostToDate > data.last.EstimatedCostToDate
+                                                span.deltaUp ▲
+                                            else
+                                                span.deltaDown ▼
+                                            | from #{currencyFormat.format(data.last.EstimatedCostToDate)}
+
+                            tr
+                                td.details(colspan=2)
+                                    div.detailsRow
+                                        span.detail #{data.current.Hashtag}
+                                        span.detail Fire Id #{data.current.UniqueFireIdentifier}
+                                        br
+                                        span.detail #{data.current.FireCause} Cause 
+                                        span.detail Discovered #{data.current.FireDiscoveryDateTime}
+                                        br
+                                        span.detail Updated #{data.current.ModifiedOnDateTime}
+                                        if !data.isNew 
+                                            span.detail Prior Update #{data.last.ModifiedOnDateTime}
+
 
             div.warn
                 | FOR INFORMATION ONLY — NOT SUITABLE FOR SAFETY/EMERGENCY PURPOSES
@@ -82,11 +89,13 @@ html
                 | UNOFFICIAL — MAY BE INCORRECT OR OUT-OF-DATE — USE AT YOUR OWN RISK
 
             div.cite
-                | Consult local public officials for safety and emergency information. 
-                | *Containment may represent objective completion rather than perimeter containment.
-                br
-                | Generated by twitter.com/#{config.twitterName} using data from National Fire Situational Awareness
-                | (source: #{config.sourceUrl}). 
-                br
-                | @#{config.twitterName} is not affiliated with any government agency —
-                | see #{config.disclaimerUrl} for additional disclaimers.
+                | All content provided on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+                p
+                    | Consult local public officials for safety and emergency information. 
+                    | *Containment may represent objective completion rather than perimeter containment.
+                    | Fire info: National Fire Situational Awareness (#{config.sourceUrl}).
+                    | Fire locations: GEOMAC (https://wildfire.cr.usgs.gov).
+                    | #{data.terrainCredit}
+                    | Automatically generated by twitter.com/#{config.twitterName}.
+                    | See #{config.disclaimerUrl} for details and additional warranty and liability disclaimers.
+

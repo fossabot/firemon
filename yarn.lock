@@ -1677,7 +1677,7 @@ setprototypeof@1.1.0:
   version "1.1.0"
   resolved "https://registry.yarnpkg.com/setprototypeof/-/setprototypeof-1.1.0.tgz#d0bd85536887b6fe7c0d818cb962d9d91c54e656"
 
-sharp@^0.20.7:
+sharp@^0.20.7, sharp@^0.20.8:
   version "0.20.8"
   resolved "https://registry.yarnpkg.com/sharp/-/sharp-0.20.8.tgz#e853f10b53b730824f0c3c5e453c79fa0812a48b"
   dependencies:

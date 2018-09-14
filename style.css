@@ -8,15 +8,23 @@ html {
     margin: auto auto;
 }
 
+
 h1 {
     color: red;
     background-color: rgb(162, 255, 182);
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 body {
     font-size: 150%;
     text-align: center;
     border:5px solid rgb(85, 215, 255);
+}
+
+.smallMap {
+    width: 100%;
+    margin: auto;
 }
 
 table {
@@ -27,7 +35,7 @@ table {
     font-size: 125%;
 }
 
-tr:nth-child(even) {
+.data tr:nth-child(even) {
     background: #eee;
 }
 
@@ -55,8 +63,8 @@ tr:nth-child(even) {
     margin-left: auto;
     margin-right: auto;
     font-size: 67.5%;
-    margin-top: 30px;
-    margin-bottom: 10px;
+    margin-top: 15px;
+    margin-bottom: 0;
     font-weight: 600;
 }
 
@@ -67,34 +75,38 @@ tr:nth-child(even) {
 
 .cite {
     font-family: 'Roboto', sans-serif;
-    font-size: 60%;
-    width: 98%;
-    margin: 20px auto;
+    font-size: 52%;
+    width: 95%;
+    margin: 13px auto;
 }
 
-td {
+.data td {
     text-align: left;
 }
-th {
+.data th {
     text-align: right;
 }
-td, th {
+.data td, th {
     padding: 5px;
 }
 
-.details {
+.data .details {
     font-size: 70%;
     text-align: center;
 }
 
-.detailsRow {
+.data .detailsRow {
     margin-top: 20px;
 }
 
-.detail {
+.data .detail {
     white-space: nowrap;
 }
 
 .detail + .detail:before {
     content: " — ";
+}
+
+.cite p {
+    margin: 3px;
 }

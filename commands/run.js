@@ -33,6 +33,7 @@ exports.builder = {
 
 exports.handler = argv => {
 
+  const os = require('os');
   const rp = require('request-promise');
   const _ = require('lodash');
   const yaml = require('js-yaml');
@@ -46,7 +47,9 @@ exports.handler = argv => {
   const numeral = require('numeral');
 
   const envconfig = require('../envconfig');
-
+  const dateString = require('../lib/util').dateString;
+  const maprender = require('../lib/maprender');
+  const geomac = require('../lib/geomac');
 
   const webshotSemaphore = require('semaphore')(1);
 
@@ -54,6 +57,10 @@ exports.handler = argv => {
 
   const mkdirp = require('mkdirp');
 
+  const tmpdir = os.tmpdir() + '/firemon/';
+
+  mkdirp.sync(tmpdir + '/img/src/terrain');
+  mkdirp.sync(tmpdir + '/img/src/detail');
   mkdirp.sync(argv.outputdir + '/img');
   mkdirp.sync(argv.outputdir + '/tweets');
   mkdirp.sync(argv.outputdir + '/postqueue');
@@ -73,9 +80,6 @@ exports.handler = argv => {
     return r;
   }
 
-  const dateString = function (d) {
-    return new Date(d).toISOString().substr(0, 16) + 'Z';
-  }
 
   const processFire = function (entry) {
     let ret = {};
@@ -146,9 +150,10 @@ exports.handler = argv => {
         const globalUpdateId = 'Update-at-' + dateString(new Date().getTime());
 
         if (REMOVE_forceDeltaDebug && !first) {
-          const bs = ['2018-COPSF-001278', '2018-NVHTF-020194', '2018-ORMED-000395', '2018-AKUYD-000356', '2018-AKUYD-000370'];
+          const bs = ['2018-CASHF-001444','2018-WAOWF-000443','2018-CASHF-001438'];
           for (var bsi in bs) {
             const bsk = bs[bsi];
+            if (!x[bsk]) { continue; }
             x[bsk].Fire_Name = 'TEST FAKE ' + x[bsk].Fire_Name;
             x[bsk].Hashtag = '#TestOnly' + x[bsk].Hashtag.substr(1);
             x[bsk].ModifiedOnDateTime = dateString(new Date().getTime());
@@ -173,86 +178,144 @@ exports.handler = argv => {
         // max fires to process.
         //let c = 2000;
 
-        for (var i in x) {
-          if (first) {
-            continue;
-          }
-          const cur = x[i];
-          if (i in last && last[i].ModifiedOnDateTime == cur.ModifiedOnDateTime) {
-            continue;
-          }
-
-          const updateId = 'Update-' + i + '-at-' + cur.ModifiedOnDateTime + ' named ' + cur.Name;
-
-          const old = last[i] || {};
-
-          let oneDiff = deepDiff(old, cur);
-          oneDiff = _.keyBy(oneDiff, o => o.path.join('.'));
-
-          if (!('DailyAcres' in oneDiff || 'PercentContained' in oneDiff)) {
-            // Unless acreage or containment change, we don't report it.
-            continue;
-          }
+        outstanding++;
 
 
-          const diffs = yaml.safeDump(oneDiff || []);
+        geomac.getPerimeters((perims, err) => {
 
-          console.log('- ' + updateId);
+          //console.log(perims);
 
-          fs.writeFileSync(argv.outputdir + '/data/DIFF-' + updateId + '.yaml', diffs);
+          try {
+            if (err) {
+              throw err;
+            }
+            for (var i in x) {
 
-          const templateData = { current: cur, last: old, diff: oneDiff, isNew: !(i in last) };
-          const html = genHtml(templateData);
+              
+              if (first) {
+                continue;
+              }
+              const cur = x[i];
 
-          const tweet = genTweet(templateData);
-          fs.writeFileSync(argv.outputdir + '/tweets/TWEET-' + updateId + '.txt', tweet);
+              const perim = ((cur.UniqueFireIdentifier in perims) ? (perims[cur.UniqueFireIdentifier].geometry.rings) : []) || [];
+              //console.log(perims);
+              //console.log(perim);
 
-          console.log('   # Before webshotSemaphore ' + updateId);
-          outstanding++;
-          webshotSemaphore.take(function () {
-            try {
-              console.log('   # Entering webshotSemaphore ' + updateId);
-              webshot(html, argv.outputdir + '/img/IMG-' + updateId + '.png',
-                {
-                  siteType: 'html',
-                  windowSize: { width: 2048, height: 1082 },
-                  shotSize: { width: 'all', height: 'all' }
-                },
-                function (err) {
-                  if (err !== null) {
-                    console.log(err);
-                  }
-                  console.log('   # Exiting webshotSemaphore ' + updateId);
+              if (!perim) {
+                continue;
+              }
 
-                  // Tweet out in acre order if congested.
-                  const priority = numeral(Math.round(100000000000 - cur.DailyAcres)).format('0000000000000');
+              if (i in last && last[i].ModifiedOnDateTime == cur.ModifiedOnDateTime) {
+                continue;
+              }
 
-                  const img64 = fs.readFileSync(argv.outputdir + '/img/IMG-' + updateId + '.png', {encoding: 'base64'});
+              const updateId = 'Update-' + cur.ModifiedOnDateTime + '-of-' + i + ' named ' + cur.Name;
 
-                  const saved = {
-                    text: tweet,
-                    imageAltText: tweet,
-                    imageBase64: img64
+              const old = last[i] || {};
+
+              let oneDiff = deepDiff(old, cur);
+              oneDiff = _.keyBy(oneDiff, o => o.path.join('.'));
+
+              if (!('DailyAcres' in oneDiff || 'PercentContained' in oneDiff)) {
+                // Unless acreage or containment change, we don't report it.
+                continue;
+              }
+
+
+              const diffs = yaml.safeDump(oneDiff || []);
+              const isNew = !(i in last);
+
+              console.log('- ' + updateId);
+
+              fs.writeFileSync(argv.outputdir + '/data/DIFF-' + updateId + '.yaml', diffs);
+
+
+              console.log('   # Before webshotSemaphore ' + updateId);
+              outstanding++;
+
+              webshotSemaphore.take(function () {
+                try {
+                  console.log('   # Entering webshotSemaphore ' + updateId);
+                  const infoImg = argv.outputdir + '/img/IMG-' + updateId + '.png';
+                  const terrainMapImg = tmpdir + '/img/src/terrain/MAP-TERRAIN-' + updateId + '.png';
+                  const detailMapImg = tmpdir + '/img/src/detail/MAP-DETAIL-' + updateId + '.png';
+
+                  const doWebshot = (terrainPath, detailPath) => {
+                    const terrainImg64 = terrainPath ? fs.readFileSync(terrainPath, {encoding: 'base64'}) : null;
+                    const templateData = { 
+                      current: cur, 
+                      last: old, 
+                      diff: oneDiff, 
+                      isNew: isNew, 
+                      terrainImg64: terrainImg64, 
+                      terrainCredit: terrainImg64 ? maprender.terrainCredit : '',
+                      detailPath: detailPath,
+                    };
+                    const html = genHtml(templateData);
+
+
+                    const tweet = genTweet(templateData);
+                    fs.writeFileSync(argv.outputdir + '/tweets/TWEET-' + updateId + '.txt', tweet);
+                    webshot(html, infoImg,
+                      {
+                        siteType: 'html',
+                        windowSize: { width: 2048, height: 1082 },
+                        shotSize: { width: 'all', height: 'all' }
+                      },
+                      function (err) {
+                        if (err !== null) {
+                          console.log(err);
+                        }
+                        
+                        // Tweet out in acre order if congested.
+                        const priority = numeral(Math.round(100000000000 - cur.DailyAcres)).format('0000000000000');
+
+                        const img64 = fs.readFileSync(infoImg, {encoding: 'base64'});
+
+                        const saved = {
+                          text: tweet,
+                          imageAltText: tweet,
+                          imageBase64: img64
+                        };
+
+                        // Tell the twitter daemon we are ready to post.
+                        const savedYaml = yaml.safeDump(saved);
+                        fs.writeFileSync(argv.outputdir + '/postqueue/' + priority + '-TWEET-' + updateId + '.yaml', savedYaml);
+
+                        outstanding--;
+
+                        console.log('   # Exiting webshotSemaphore ' + updateId);
+                        webshotSemaphore.leave();
+                      });
                   };
 
-                  // Tell the twitter daemon we are ready to post.
-                  const savedYaml = yaml.safeDump(saved);
-                  fs.writeFileSync(argv.outputdir + '/postqueue/' + priority + '-TWEET-' + updateId + '.yaml', savedYaml);
+                  if (perim.length > 0) {
+                    maprender.renderMap(terrainMapImg, perim, 800, 800, 6, false, (terrainErr) => {
+                      maprender.renderMap(detailMapImg, perim, 1024, 550, 14, true, (detailErr) => {
+                        doWebshot(terrainErr ? null : terrainMapImg, detailErr ? null : detailMapImg);
+                      });
+                    });
+                  } else {
+                    console.log('>> Missing perimeter - ' + updateId);
+                    doWebshot(null, null);
+                  }
+                } catch (err) {
+                  console.log(err);
+                }
+              });
 
-                  outstanding--;
-                  webshotSemaphore.leave();
-                });
-            } catch (err) {
-              console.log(err);
+
+              //c--;
+              //if (c < 0) {
+              //    break;
+              //}
             }
-          });
+          } catch (err) {
+            console.log(err);
+          }
 
-
-          //c--;
-          //if (c < 0) {
-          //    break;
-          //}
-        }
+          outstanding--;
+        });
       } catch (err) {
         console.log(err);
       } finally {
