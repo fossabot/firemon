@@ -8,6 +8,10 @@ html {
     margin: auto auto;
 }
 
+.perim .content {
+    margin: 0;
+}
+
 
 h1 {
     color: red;
@@ -20,6 +24,16 @@ body {
     font-size: 150%;
     text-align: center;
     border:5px solid rgb(85, 215, 255);
+}
+
+.perim body {
+    border: none;
+    margin: 0;
+    padding: 0;
+}
+
+.bigMap {
+    width: 100%;
 }
 
 .smallMap {
@@ -68,6 +82,12 @@ table {
     font-weight: 600;
 }
 
+.perim .warn {
+    margin-top: 0;
+    width: 100%;
+    font-size: 90%;
+}
+
 .upd, .fireid {
     font-size: 70%;
     color: black;
@@ -78,6 +98,11 @@ table {
     font-size: 52%;
     width: 95%;
     margin: 13px auto;
+}
+
+.perim .cite {
+    font-size: 70%;
+    margin: 0;
 }
 
 .data td {
