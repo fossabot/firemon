@@ -35,5 +35,5 @@ exports.ui = {
 };
 
 exports.gfx = {
-  use_gm: process.env.USE_GRAPHICSMAGICK,
+  use_im: process.env.USE_IMAGEMAGICK,
 };
