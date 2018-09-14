@@ -32,3 +32,7 @@ exports.twitterAuth = {
 exports.ui = {
   disclaimer_url: process.env.FIREMON_DISCLAIMER_URL,
 };
+
+exports.gfx = {
+  use_gm: process.env.USE_GRAPHICSMAGICK,
+};
