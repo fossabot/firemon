@@ -288,7 +288,7 @@ exports.handler = argv => {
                           }
 
 
-                          const saveTweet = function(detailRender64) {
+                          const saveTweet = function(detailRender) {
                             
                             // Tweet out in acre order if congested.
                             const priority = numeral(Math.round(100000000000 - cur.DailyAcres)).format('0000000000000');
@@ -298,9 +298,9 @@ exports.handler = argv => {
                             const saved = {
                               text: tweet,
                               image1AltText: tweet,
-                              image1Base64: img64,
+                              image1: infoImg,
                               image2AltText: 'Perimeter map',
-                              image2Base64: detailRender64,
+                              image2: detailRender,
                             };
 
                             // Tell the twitter daemon we are ready to post.
@@ -335,7 +335,7 @@ exports.handler = argv => {
                                 if (err !== null) {
                                   console.log(err);
                                 }
-                                saveTweet(err ? null : fs.readFileSync(perimImg, {encoding: 'base64'}));
+                                saveTweet(err ? null : perimImg);
                               });
                           } else {
                             saveTweet(null);
