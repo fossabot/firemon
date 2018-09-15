@@ -44,43 +44,47 @@ html
                                             else
                                                 span.deltaDown ▼
                                             | from #{numFormat.format(data.last.DailyAcres)}
-                            tr.important
-                                th 
-                                    span.current #{numFormat.format(data.current.TotalIncidentPersonnel)}
-                                td
-                                    | Personnel
-                                    if !data.isNew && 'TotalIncidentPersonnel' in data.diff
-                                        span.previous
-                                            if data.current.TotalIncidentPersonnel > data.last.TotalIncidentPersonnel
-                                                span.deltaUp ▲
-                                            else
-                                                span.deltaDown ▼
-                                            | from #{numFormat.format(data.last.TotalIncidentPersonnel)}
-                            tr.important
-                                th 
-                                    span.current #{currencyFormat.format(data.current.EstimatedCostToDate)}
-                                td
-                                    | Est. Cost
-                                    if !data.isNew && 'EstimatedCostToDate' in data.diff
-                                        span.previous
-                                            if data.current.EstimatedCostToDate > data.last.EstimatedCostToDate
-                                                span.deltaUp ▲
-                                            else
-                                                span.deltaDown ▼
-                                            | from #{currencyFormat.format(data.last.EstimatedCostToDate)}
+                            if data.current.TotalIncidentPersonnel
+                                tr.important
+                                    th 
+                                        span.current #{numFormat.format(data.current.TotalIncidentPersonnel)}
+                                    td
+                                        | Personnel
+                                        if !data.isNew && 'TotalIncidentPersonnel' in data.diff
+                                            span.previous
+                                                if data.current.TotalIncidentPersonnel > data.last.TotalIncidentPersonnel
+                                                    span.deltaUp ▲
+                                                else
+                                                    span.deltaDown ▼
+                                                | from #{numFormat.format(data.last.TotalIncidentPersonnel)}
+                            if data.current.EstimatedCostToDate
+                                tr.important
+                                    th 
+                                        span.current #{currencyFormat.format(data.current.EstimatedCostToDate)}
+                                    td
+                                        | Est. Cost
+                                        if !data.isNew && 'EstimatedCostToDate' in data.diff
+                                            span.previous
+                                                if data.current.EstimatedCostToDate > data.last.EstimatedCostToDate
+                                                    span.deltaUp ▲
+                                                else
+                                                    span.deltaDown ▼
+                                                | from #{currencyFormat.format(data.last.EstimatedCostToDate)}
 
                             tr
                                 td.details(colspan=2)
                                     div.detailsRow
-                                        span.detail #{data.current.Hashtag}
-                                        span.detail Fire Id #{data.current.UniqueFireIdentifier}
-                                        br
+                                        if data.cities && data.cities.length > 0
+                                            span.detail Vicinity of #{data.cities[0].displayName}
+                                            br
                                         span.detail #{data.current.FireCause} Cause 
                                         span.detail Discovered #{data.current.FireDiscoveryDateTime}
                                         br
                                         span.detail Updated #{data.current.ModifiedOnDateTime}
                                         if !data.isNew 
                                             span.detail Prior Update #{data.last.ModifiedOnDateTime}
+                                        br
+                                        span.detail Fire Id #{data.current.UniqueFireIdentifier}
 
 
             div.warn
@@ -92,10 +96,11 @@ html
                 | All content provided on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
                 p
                     | Consult local public officials for safety and emergency information. 
-                    | *Containment may represent objective completion rather than perimeter containment.
-                    | Fire info: National Fire Situational Awareness (#{config.sourceUrl}).
-                    | Fire locations: GEOMAC (https://wildfire.cr.usgs.gov).
-                    | #{data.terrainCredit}
-                    | Automatically generated by twitter.com/#{config.twitterName}.
+                    | Generated by twitter.com/#{config.twitterName} - License: CC-BY-SA-4.0 https://creativecommons.org/licenses/by-sa/4.0/.
                     | See #{config.disclaimerUrl} for details and additional warranty disclaimers and liability limitations.
+                    | Fire info: National Fire Situational Awareness #{config.sourceUrl};
+                    | Fire locations: GEOMAC https://wildfire.cr.usgs.gov;
+                    | City names: GeoNames https://geonames.org/about.html;
+                    | #{data.terrainCredit}
+                    | *Containment may represent objective completion rather than perimeter containment.
 

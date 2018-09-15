@@ -59,6 +59,7 @@ exports.handler = argv => {
   const envconfig = require('../envconfig');
   const dateString = require('../lib/util').dateString;
   const maprender = require('../lib/maprender');
+  const geocoding = require('../lib/geocoding');
   const geomac = require('../lib/geomac');
 
   const FairSemaphore = require('fair-semaphore');
@@ -255,6 +256,7 @@ exports.handler = argv => {
                   })
                   .map(fire => fire.geometry.rings)
                   .reduce((a,b) => a.concat(b), []);
+
                 perim = perim.concat(children);
                 perim = perim.map(geomac.cleanGeometryRing);        
 
@@ -264,7 +266,6 @@ exports.handler = argv => {
                 console.log('- ' + updateId);
 
                 fs.writeFileSync(argv.outputdir + '/data/DIFF-' + updateId + '.yaml', diffs);
-
 
                 console.log('   # Before intensiveProcessingSemaphore ' + updateId);
                 outstanding++;
@@ -278,8 +279,23 @@ exports.handler = argv => {
                     const detailMapImg = tmpdir + '/img/src/detail/MAP-DETAIL-' + updateId + '.png';
 
                     const doWebshot = (center, zoom, terrainPath, detailPath) => {
+
+                      const lat = center ? center[1] : null
+                      const lon = center ? center[0] : null
+
+                      const cities = geocoding.nearestCities(lat, lon, 100, 10 * 2.5 + Math.sqrt(0.00404686 /*km2 per acre*/ * cur.DailyAcres)) 
+                        .map(x => {
+                          x.displayName = geocoding.cityDisplayName(x);
+                          return x;
+                        });
+
+                      const nearPopulation = cities.reduce((a, b) => (a + b.population), 0);
+                      console.log('  > Fire %s is near pop. %d', updateId, nearPopulation);
+
+
                       const terrainImg = terrainPath || null;
                       const templateData = { 
+                        cities: cities,
                         current: cur, 
                         last: old, 
                         diff: oneDiff, 
@@ -304,8 +320,9 @@ exports.handler = argv => {
 
                           const saveTweet = function(detailRender) {
                             
-                            // Tweet out in acre order if congested.
-                            const priority = numeral(Math.round(100000000000 - cur.DailyAcres)).format('0000000000000');
+                            // Tweet out in population and acre order.
+                            const invPrio = Math.log10(cur.DailyAcres) * 1000 + nearPopulation;
+                            const priority = numeral(Math.round(100000000000 - invPrio)).format('0000000000000');
                             let saved = {
                               text: tweet,
                               image1AltText: tweet,
@@ -314,7 +331,7 @@ exports.handler = argv => {
                               image2: detailRender,
                             };
                             if (center) {
-                              saved.coords = { lat: center[1], long: center[0] };
+                              saved.coords = { lat: lat, lon: lon };
                             }
 
                             // Tell the twitter daemon we are ready to post.
@@ -330,6 +347,7 @@ exports.handler = argv => {
                           const detailImg = detailPath || null;
                           if (detailImg) {
                             const perimTemplateData = {
+                              cities: cities,
                               perimDateTime: perimDateTime,
                               current: cur, 
                               last: old, 
