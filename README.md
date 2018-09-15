@@ -1,4 +1,6 @@
 # firemon
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fpublicdocs-platform%2Ffiremon.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fpublicdocs-platform%2Ffiremon?ref=badge_shield)
+
 Unofficial wildfire data monitor.  Gathers data from public sources, and posts it to Twitter.
 
 The original runs at https://twitter.com/FireUnofficial
@@ -28,3 +30,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ````
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fpublicdocs-platform%2Ffiremon.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fpublicdocs-platform%2Ffiremon?ref=badge_large)
